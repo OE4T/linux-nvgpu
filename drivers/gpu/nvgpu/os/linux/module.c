@@ -1,7 +1,7 @@
 /*
  * GK20A Graphics
  *
- * Copyright (c) 2011-2021, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -417,14 +417,7 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 	if (!g->power_on)
 		goto done;
 
-	/* disable IRQs and wait for completion */
-	irqs_enabled = g->irqs_enabled;
-	if (irqs_enabled) {
-		disable_irq(g->irq_stall);
-		if (g->irq_stall != g->irq_nonstall)
-			disable_irq(g->irq_nonstall);
-		g->irqs_enabled = 0;
-	}
+	nvgpu_hide_usermode_for_poweroff(g);
 
 	gk20a_scale_suspend(dev);
 
@@ -432,9 +425,42 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 	gk20a_cde_suspend(l);
 #endif
 
+	if (g->ops.fifo.channel_suspend) {
+		ret = g->ops.fifo.channel_suspend(g);
+		if (ret) {
+			nvgpu_err(g, "channel suspend failed");
+			gk20a_scale_resume(dev);
+			nvgpu_restore_usermode_for_poweron(g);
+			goto done;
+		}
+	}
+
+	/* disable IRQs and wait for completion */
+	irqs_enabled = g->irqs_enabled;
+	if (g->irqs_enabled) {
+		disable_irq(g->irq_stall);
+		if (g->irq_stall != g->irq_nonstall)
+			disable_irq(g->irq_nonstall);
+		g->irqs_enabled = 0;
+	}
+
 	ret = gk20a_prepare_poweroff(g);
-	if (ret)
-		goto error;
+	if (ret) {
+		nvgpu_err(g, "gk20a_prepare_poweroff failed %d", ret);
+
+		/* re-enabled IRQs if previously enabled */
+		if (irqs_enabled) {
+			enable_irq(g->irq_stall);
+			if (g->irq_stall != g->irq_nonstall) {
+				enable_irq(g->irq_nonstall);
+			}
+			g->irqs_enabled = 1;
+		}
+
+		gk20a_scale_resume(dev);
+		nvgpu_restore_usermode_for_poweron(g);
+		goto done;
+	}
 
 	/* Decrement platform power refcount */
 	if (platform->idle)
@@ -446,21 +472,6 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 #ifdef CONFIG_NVGPU_SUPPORT_LINUX_ECC_ERROR_REPORTING
 	nvgpu_disable_ecc_reporting(g);
 #endif
-
-	nvgpu_hide_usermode_for_poweroff(g);
-	nvgpu_mutex_release(&g->power_lock);
-	return 0;
-
-error:
-	/* re-enabled IRQs if previously enabled */
-	if (irqs_enabled) {
-		enable_irq(g->irq_stall);
-		if (g->irq_stall != g->irq_nonstall)
-			enable_irq(g->irq_nonstall);
-		g->irqs_enabled = 1;
-	}
-
-	gk20a_scale_resume(dev);
 done:
 	nvgpu_mutex_release(&g->power_lock);
 
