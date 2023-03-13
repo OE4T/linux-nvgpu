@@ -400,6 +400,40 @@ static int gk20a_lockout_registers(struct gk20a *g)
 	return 0;
 }
 
+static int gk20a_fifo_wait_engines_idle(struct gk20a *g)
+{
+	u32 engine_id_idx;
+	u32 active_engine_id = 0;
+	int ret;
+
+	nvgpu_log_fn(g, " ");
+
+	for (engine_id_idx = 0; engine_id_idx < g->fifo.num_engines; engine_id_idx++) {
+		active_engine_id = g->fifo.active_engines_list[engine_id_idx];
+
+		ret = gk20a_fifo_wait_pbdma_idle(g,
+			g->fifo.engine_info[active_engine_id].pbdma_id);
+		if (ret != 0) {
+			nvgpu_log_info(g, "failed to idle the pbdma");
+			ret = -EAGAIN;
+			goto done;
+		}
+
+		ret = gk20a_fifo_wait_engine_id_idle(g,
+			g->fifo.engine_info[active_engine_id].engine_id);
+		if (ret != 0) {
+			nvgpu_log_info(g, "failed to idle the engine");
+			ret = -EAGAIN;
+			goto done;
+		}
+	}
+
+done:
+	nvgpu_log_fn(g, "done");
+
+	return ret;
+}
+
 static int gk20a_pm_prepare_poweroff(struct device *dev)
 {
 	struct gk20a *g = get_gk20a(dev);
@@ -418,6 +452,13 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 		goto done;
 
 	nvgpu_hide_usermode_for_poweroff(g);
+
+	ret = gk20a_fifo_wait_engines_idle(g);
+	if (ret) {
+		nvgpu_err(g, "failed to idle engines");
+		nvgpu_restore_usermode_for_poweron(g);
+		goto done;
+	}
 
 	gk20a_scale_suspend(dev);
 
