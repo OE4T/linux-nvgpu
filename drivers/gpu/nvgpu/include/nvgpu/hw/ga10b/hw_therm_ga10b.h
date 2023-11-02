@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -90,7 +90,7 @@
 #define therm_gate_ctrl_eng_idle_filt_mant_m()                (U32(0x7U) << 13U)
 #define therm_gate_ctrl_eng_idle_filt_mant__prod_f()                   (0x2000U)
 #define therm_gate_ctrl_eng_delay_before_m()                  (U32(0xfU) << 16U)
-#define therm_gate_ctrl_eng_delay_before__prod_f()                    (0x40000U)
+#define therm_gate_ctrl_eng_delay_before__prod_f()                    (0xa0000U)
 #define therm_gate_ctrl_eng_delay_after_m()                   (U32(0xfU) << 20U)
 #define therm_gate_ctrl_eng_delay_after__prod_f()                         (0x0U)
 #define therm_fecs_idle_filter_r()                                 (0x00020288U)
