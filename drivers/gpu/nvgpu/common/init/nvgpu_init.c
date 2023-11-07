@@ -969,12 +969,11 @@ int nvgpu_finalize_poweron(struct gk20a *g)
 
 		NVGPU_INIT_TABLE_ENTRY(g->ops.mm.init_mm_support, NO_FLAG),
 		NVGPU_INIT_TABLE_ENTRY(g->ops.fifo.fifo_init_support, NO_FLAG),
-		NVGPU_INIT_TABLE_ENTRY(g->ops.therm.elcg_init_idle_filters,
-				       NO_FLAG),
 		NVGPU_INIT_TABLE_ENTRY(&nvgpu_netlist_init_ctx_vars, NO_FLAG),
 		/* prepare portion of sw required for enable hw */
 		NVGPU_INIT_TABLE_ENTRY(&nvgpu_gr_alloc, NO_FLAG),
 		NVGPU_INIT_TABLE_ENTRY(&nvgpu_gr_enable_hw, NO_FLAG),
+
 		NVGPU_INIT_TABLE_ENTRY(g->ops.acr.acr_construct_execute,
 				       NVGPU_SEC_PRIVSECURITY),
 		/**
@@ -1015,6 +1014,9 @@ int nvgpu_finalize_poweron(struct gk20a *g)
 #ifdef CONFIG_NVGPU_LS_PMU
 		NVGPU_INIT_TABLE_ENTRY(g->ops.pmu.pmu_rtos_init, NO_FLAG),
 #endif
+		NVGPU_INIT_TABLE_ENTRY(g->ops.therm.elcg_init_idle_filters,
+				       NO_FLAG),
+
 		NVGPU_INIT_TABLE_ENTRY(g->ops.gr.gr_init_support, NO_FLAG),
 		/**
 		 * All units requiring ECC stats must initialize ECC counters
