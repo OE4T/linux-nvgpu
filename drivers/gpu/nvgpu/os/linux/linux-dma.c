@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// SPDX-FileCopyrightText: Copyright (c) 2017-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
 #include <linux/iommu.h>
+#include <linux/vmalloc.h>
 
 #include <nvgpu/log.h>
 #include <nvgpu/dma.h>
