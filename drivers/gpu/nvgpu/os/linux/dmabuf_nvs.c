@@ -1,18 +1,9 @@
-/*
- * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
 
 #include <linux/version.h>
 #include <linux/dma-buf.h>
@@ -144,7 +135,7 @@ static int nvgpu_nvs_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma
 
 	nvgpu_nvs_ctrl_fifo_lock_queues(g);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS) /* Linux v6.3 */
 	vm_flags_set(vma, VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
 		VM_DONTDUMP);
 #else
@@ -153,7 +144,7 @@ static int nvgpu_nvs_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma
 #endif
 
 	if (buf->mask == NVGPU_NVS_CTRL_FIFO_QUEUE_CLIENT_EVENTS_READ) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS) /* Linux v6.3 */
 		vm_flags_set(vma, VM_SHARED);
 #else
 		vma->vm_flags |= VM_SHARED;

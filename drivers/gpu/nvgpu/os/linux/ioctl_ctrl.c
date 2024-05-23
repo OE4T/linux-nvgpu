@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // SPDX-FileCopyrightText: Copyright (c) 2011-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
+
 #include <linux/version.h>
 #include <linux/uaccess.h>
 #include <linux/cdev.h>
@@ -2853,7 +2857,7 @@ int gk20a_ctrl_dev_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	nvgpu_mutex_acquire(&l->ctrl_privs_lock);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS) /* Linux v6.3 */
 	vm_flags_set(vma, VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
 		VM_DONTDUMP | VM_PFNMAP);
 #else

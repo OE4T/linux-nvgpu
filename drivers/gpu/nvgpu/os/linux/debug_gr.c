@@ -1,18 +1,9 @@
-/*
- * Copyright (c) 2017-2023, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
 
 #include <nvgpu/gk20a.h>
 #include <nvgpu/gr/ctx.h>
@@ -250,7 +241,7 @@ static int cbc_ctrl_debug_mmap_cbc_store(struct file *f, struct vm_area_struct *
 		err = -EINVAL;
 		goto done;
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS) /* Linux v6.3 */
 	vm_flags_set(vma, VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
 			 VM_DONTDUMP | VM_PFNMAP);
 	vm_flags_clear(vma, VM_MAYWRITE);
