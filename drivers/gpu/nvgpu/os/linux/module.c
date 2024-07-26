@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// SPDX-FileCopyrightText: Copyright (c) 2011-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2011-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 /*
  * GK20A Graphics
  */
+
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
 
 #include <linux/module.h>
 #include <linux/of.h>
@@ -2073,9 +2077,21 @@ static int __exit gk20a_remove(struct platform_device *pdev)
 	return err;
 }
 
+#if defined(NV_PLATFORM_DRIVER_STRUCT_REMOVE_RETURNS_VOID) /* Linux v6.11 */
+static inline void __exit gk20a_remove_wrapper(struct platform_device *pdev)
+{
+	gk20a_remove(pdev);
+}
+#else
+static inline int __exit gk20a_remove_wrapper(struct platform_device *pdev)
+{
+	return gk20a_remove(pdev);
+}
+#endif
+
 static struct platform_driver gk20a_driver = {
 	.probe = gk20a_probe,
-	.remove = __exit_p(gk20a_remove),
+	.remove = __exit_p(gk20a_remove_wrapper),
 	.shutdown = gk20a_pm_shutdown,
 	.driver = {
 		.owner = THIS_MODULE,
