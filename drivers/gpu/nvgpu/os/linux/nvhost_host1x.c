@@ -359,7 +359,6 @@ int nvgpu_nvhost_fence_install(struct nvhost_fence *fence, int fd)
 	if (!file)
 		return -ENOMEM;
 
-	dma_fence_get(f);
 	fd_install(fd, file->file);
 
 	return 0;
