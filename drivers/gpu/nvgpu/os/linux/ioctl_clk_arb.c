@@ -1,18 +1,9 @@
-/*
- * Copyright (c) 2016-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2016-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
 
 #include <linux/cdev.h>
 #include <linux/file.h>
@@ -418,21 +409,33 @@ int nvgpu_clk_arb_commit_request_fd(struct gk20a *g,
 {
 	struct nvgpu_clk_arb *arb = g->clk_arb;
 	struct nvgpu_clk_dev *dev;
+	struct file *filp;
 	struct fd fd;
 	int err = 0;
 
 	clk_arb_dbg(g, " ");
 
-	fd  = fdget(request_fd);
+	fd = fdget(request_fd);
+#if defined(NV_FD_EMPTY_PRESENT) /* Linux v6.12 */
+	if (fd_empty(fd))
+		return -EINVAL;
+#else
 	if (!fd.file)
 		return -EINVAL;
+#endif
 
-	if (fd.file->f_op != &completion_dev_ops) {
+#if defined(NV_FD_FILE_PRESENT) /* Linux v6.12 */
+	filp = fd_file(fd);
+#else
+	filp = fd.file;
+#endif
+
+	if (filp->f_op != &completion_dev_ops) {
 		err = -EINVAL;
 		goto fdput_fd;
 	}
 
-	dev = (struct nvgpu_clk_dev *) fd.file->private_data;
+	dev = (struct nvgpu_clk_dev *)filp->private_data;
 
 	if (!dev || dev->session != session) {
 		err = -EINVAL;
@@ -458,6 +461,7 @@ int nvgpu_clk_arb_set_session_target_mhz(struct nvgpu_clk_session *session,
 		int request_fd, u32 api_domain, u16 target_mhz)
 {
 	struct nvgpu_clk_dev *dev;
+	struct file *filp;
 	struct fd fd;
 	int err = 0;
 
@@ -465,15 +469,26 @@ int nvgpu_clk_arb_set_session_target_mhz(struct nvgpu_clk_session *session,
 			"domain=0x%08x target_mhz=%u", api_domain, target_mhz);
 
 	fd = fdget(request_fd);
+
+#if defined(NV_FD_EMPTY_PRESENT) /* Linux v6.12 */
+	if (fd_empty(fd))
+		return -EINVAL;
+#else
 	if (!fd.file)
 		return -EINVAL;
+#endif
 
-	if (fd.file->f_op != &completion_dev_ops) {
+#if defined(NV_FD_FILE_PRESENT) /* Linux v6.12 */
+	filp = fd_file(fd);
+#else
+	filp = fd.file;
+#endif
+	if (filp->f_op != &completion_dev_ops) {
 		err = -EINVAL;
 		goto fdput_fd;
 	}
 
-	dev = fd.file->private_data;
+	dev = filp->private_data;
 	if (!dev || dev->session != session) {
 		err = -EINVAL;
 		goto fdput_fd;
