@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-/* SPDX-FileCopyrightText: Copyright (c) 2020-2023, NVIDIA CORPORATION & AFFILIATES.
+/* SPDX-FileCopyrightText: Copyright (c) 2020-2024, NVIDIA CORPORATION & AFFILIATES.
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -72,7 +72,9 @@ int nvgpu_profiler_alloc(struct gk20a *g,
 
 	nvgpu_mutex_init(&prof->ioctl_lock);
 	nvgpu_init_list_node(&prof->prof_obj_entry);
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_add(&prof->prof_obj_entry, &g->profiler_objects);
+	nvgpu_mutex_release(&g->prof_obj_lock);
 
 	nvgpu_log(g, gpu_dbg_prof, "Allocated profiler handle %u",
 		prof->prof_handle);

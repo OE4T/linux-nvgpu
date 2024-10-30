@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2020-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -130,7 +130,9 @@ static int nvgpu_prof_fops_open(struct gk20a *g, struct file *filp,
 free_umd_buf:
 	nvgpu_kfree(g, prof_priv->regops_umd_copy_buf);
 free_prof:
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_profiler_free(prof);
+	nvgpu_mutex_release(&g->prof_obj_lock);
 free_priv:
 	nvgpu_kfree(g, prof_priv);
 	return err;
@@ -211,7 +213,9 @@ int nvgpu_prof_fops_release(struct inode *inode, struct file *filp)
 
 	nvgpu_prof_free_pma_stream_priv_data(prof_priv);
 
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_profiler_free(prof);
+	nvgpu_mutex_release(&g->prof_obj_lock);
 
 	nvgpu_kfree(g, prof_priv->regops_umd_copy_buf);
 	nvgpu_kfree(g, prof_priv->regops_staging_buf);

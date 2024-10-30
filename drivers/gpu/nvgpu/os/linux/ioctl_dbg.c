@@ -1,7 +1,7 @@
 /*
  * Tegra GK20A GPU Debugger/Profiler Driver
  *
- * Copyright (c) 2017-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -223,6 +223,7 @@ int gk20a_dbg_gpu_dev_release(struct inode *inode, struct file *filp)
 	/* Per-context profiler objects were released when we called
 	 * dbg_unbind_all_channels. We could still have global ones.
 	 */
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_for_each_entry_safe(prof_obj, tmp_obj, &g->profiler_objects,
 				nvgpu_profiler_object, prof_obj_entry) {
 		if (prof_obj->session_id == dbg_s->id) {
@@ -231,6 +232,7 @@ int gk20a_dbg_gpu_dev_release(struct inode *inode, struct file *filp)
 			nvgpu_profiler_free(prof_obj);
 		}
 	}
+	nvgpu_mutex_release(&g->prof_obj_lock);
 	dbg_s->gpu_instance_id = 0U;
 	nvgpu_mutex_release(&g->dbg_sessions_lock);
 
@@ -463,6 +465,7 @@ static int dbg_unbind_single_channel_gk20a(struct dbg_session_gk20a *dbg_s,
 	/* If there's a profiler ctx reservation record associated with this
 	 * session/channel pair, release it.
 	 */
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_for_each_entry_safe(prof_obj, tmp_obj, &g->profiler_objects,
 				nvgpu_profiler_object, prof_obj_entry) {
 		if ((prof_obj->session_id == dbg_s->id) &&
@@ -472,6 +475,7 @@ static int dbg_unbind_single_channel_gk20a(struct dbg_session_gk20a *dbg_s,
 			nvgpu_profiler_free(prof_obj);
 		}
 	}
+	nvgpu_mutex_release(&g->prof_obj_lock);
 
 	nvgpu_list_del(&ch_data->ch_entry);
 
@@ -1129,6 +1133,7 @@ static int nvgpu_dbg_gpu_ioctl_hwpm_ctxsw_mode(struct dbg_session_gk20a *dbg_s,
 	 * return an error, at the point where all client sw has been
 	 * cleaned up.
 	 */
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_for_each_entry_safe(prof_obj, tmp_obj, &g->profiler_objects,
 				nvgpu_profiler_object, prof_obj_entry) {
 		if (prof_obj->session_id == dbg_s->id) {
@@ -1137,6 +1142,7 @@ static int nvgpu_dbg_gpu_ioctl_hwpm_ctxsw_mode(struct dbg_session_gk20a *dbg_s,
 			}
 		}
 	}
+	nvgpu_mutex_release(&g->prof_obj_lock);
 
 	if (!reserved) {
 		nvgpu_err(g, "session doesn't have a valid reservation");
@@ -1371,7 +1377,9 @@ static int nvgpu_ioctl_allocate_profiler_object(
 	if (ch != NULL) {
 		tsg = nvgpu_tsg_from_ch(ch);
 		if (tsg == NULL) {
+			nvgpu_mutex_acquire(&g->prof_obj_lock);
 			nvgpu_profiler_free(prof_obj);
+			nvgpu_mutex_release(&g->prof_obj_lock);
 			goto clean_up;
 		}
 
@@ -1404,6 +1412,7 @@ static int nvgpu_ioctl_free_profiler_object(
 	nvgpu_mutex_acquire(&g->dbg_sessions_lock);
 
 	/* Remove profiler object from the list, if a match is found */
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_for_each_entry_safe(prof_obj, tmp_obj, &g->profiler_objects,
 				nvgpu_profiler_object, prof_obj_entry) {
 		if (prof_obj->prof_handle == args->profiler_handle) {
@@ -1421,6 +1430,7 @@ static int nvgpu_ioctl_free_profiler_object(
 			break;
 		}
 	}
+	nvgpu_mutex_release(&g->prof_obj_lock);
 	if (!obj_found) {
 		nvgpu_err(g, "profiler %x not found",
 							args->profiler_handle);
@@ -1436,8 +1446,9 @@ static struct nvgpu_profiler_object *find_matching_prof_obj(
 						u32 profiler_handle)
 {
 	struct gk20a *g = dbg_s->g;
-	struct nvgpu_profiler_object *prof_obj;
+	struct nvgpu_profiler_object *prof_obj, *ret_obj;
 
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
 	nvgpu_list_for_each_entry(prof_obj, &g->profiler_objects,
 				nvgpu_profiler_object, prof_obj_entry) {
 		if (prof_obj->prof_handle == profiler_handle) {
@@ -1445,12 +1456,18 @@ static struct nvgpu_profiler_object *find_matching_prof_obj(
 				nvgpu_err(g,
 						"invalid handle %x",
 						profiler_handle);
-				return NULL;
+				ret_obj = NULL;
+				goto ret;
 			}
-			return prof_obj;
+			ret_obj = prof_obj;
+			goto ret;
 		}
 	}
-	return NULL;
+	ret_obj = NULL;
+
+ret:
+	nvgpu_mutex_release(&g->prof_obj_lock);
+	return ret_obj;
 }
 
 /* used in scenarios where the debugger session can take just the inter-session
@@ -1577,7 +1594,9 @@ static int nvgpu_perfbuf_reserve_pma(struct dbg_session_gk20a *dbg_s)
 			NVGPU_PROFILER_PM_RESOURCE_TYPE_PMA_STREAM);
 	if (err != 0) {
 		nvgpu_err(g, "Failed to reserve PMA stream");
+		nvgpu_mutex_acquire(&g->prof_obj_lock);
 		nvgpu_profiler_free(dbg_s->prof);
+		nvgpu_mutex_release(&g->prof_obj_lock);
 		return err;
 	}
 
@@ -2131,6 +2150,8 @@ static int nvgpu_profiler_reserve_acquire(struct dbg_session_gk20a *dbg_s,
 	/* Find matching object. */
 	prof_obj = find_matching_prof_obj(dbg_s, profiler_handle);
 
+	nvgpu_mutex_acquire(&g->prof_obj_lock);
+
 	if (!prof_obj) {
 		nvgpu_err(g, "object not found");
 		err = -EINVAL;
@@ -2158,6 +2179,7 @@ static int nvgpu_profiler_reserve_acquire(struct dbg_session_gk20a *dbg_s,
 		NVGPU_PROFILER_PM_RESOURCE_TYPE_HWPM_LEGACY);
 
 exit:
+	nvgpu_mutex_release(&g->prof_obj_lock);
 	nvgpu_mutex_release(&g->dbg_sessions_lock);
 	return err;
 }

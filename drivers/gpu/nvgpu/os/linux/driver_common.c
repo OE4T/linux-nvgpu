@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -164,6 +164,9 @@ static void nvgpu_init_vars(struct gk20a *g)
 #endif
 #ifdef CONFIG_NVGPU_TSG_SHARING
 	nvgpu_mutex_init(&g->ctrl_dev_id_lock);
+#endif
+#ifdef CONFIG_NVGPU_PROFILER
+	nvgpu_mutex_init(&g->prof_obj_lock);
 #endif
 
 	/* Init the clock req count to 0 */
