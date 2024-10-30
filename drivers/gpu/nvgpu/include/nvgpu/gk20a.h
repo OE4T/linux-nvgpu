@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * GK20A Graphics
  *
@@ -702,6 +702,8 @@ struct gk20a {
 #endif /* CONFIG_NVGPU_DEBUGGER */
 
 #ifdef CONFIG_NVGPU_PROFILER
+	/* Held while accessing/manipulating profiler_objects */
+	struct nvgpu_mutex prof_obj_lock;
 	struct nvgpu_list_node profiler_objects;
 	struct nvgpu_pm_resource_reservations *pm_reservations;
 	nvgpu_atomic_t hwpm_refcount;
