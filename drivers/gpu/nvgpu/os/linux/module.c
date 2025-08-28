@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// SPDX-FileCopyrightText: Copyright (c) 2011-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2011-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 /*
  * GK20A Graphics
@@ -495,7 +495,9 @@ int gk20a_pm_finalize_poweron(struct device *dev)
 		goto done;
 	}
 
-	if (!l->dev_nodes_created) {
+	if ((!l->dev_nodes_created) ||
+			(nvgpu_grmgr_is_multi_gr_enabled(g))) {
+		gk20a_user_nodes_deinit(dev);
 		err = gk20a_user_nodes_init(dev);
 		if (err) {
 			goto done;

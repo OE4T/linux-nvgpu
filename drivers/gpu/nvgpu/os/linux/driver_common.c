@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2016-2024, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2016-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/reboot.h>
 #include <nvgpu/errata.h>
@@ -507,16 +494,10 @@ int nvgpu_probe(struct gk20a *g,
 	 */
 	nvgpu_read_support_gpu_tools(g);
 
-	/*
-	* TODO: While removing the legacy nodes the following condition
-	* need to be removed.
-	*/
-	if (platform->platform_chip_id == TEGRA_210) {
-		err = gk20a_user_nodes_init(dev);
-		if (err)
-			return err;
-		l->dev_nodes_created = true;
-	}
+	err = gk20a_user_nodes_init(dev);
+	if (err)
+		return err;
+	l->dev_nodes_created = true;
 
 	/*
 	 * Note that for runtime suspend to work the clocks have to be setup
