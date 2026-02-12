@@ -42,8 +42,8 @@ static enum hrtimer_restart timer_callback(struct hrtimer *os_timer)
 int nvgpu_periodic_timer_init(struct nvgpu_periodic_timer *timer,
 			void (*fn)(void *arg), void *arg)
 {
-	hrtimer_init(&timer->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	timer->timer.function = timer_callback;
+	hrtimer_setup(&timer->timer, timer_callback,
+                                CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	timer->fn = fn;
 	timer->arg = arg;
 	timer->interval = ktime_set(0, 0);
