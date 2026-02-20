@@ -14,6 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if defined(CONFIG_NVIDIA_CONFTEST)
+#include <nvidia/conftest.h>
+#endif
+
 #include <nvgpu/bug.h>
 #include <nvgpu/periodic_timer.h>
 #include <linux/async.h>
@@ -42,8 +46,13 @@ static enum hrtimer_restart timer_callback(struct hrtimer *os_timer)
 int nvgpu_periodic_timer_init(struct nvgpu_periodic_timer *timer,
 			void (*fn)(void *arg), void *arg)
 {
+#if defined(NV_HRTIMER_SETUP_PRESENT)
+	hrtimer_setup(&timer->timer, timer_callback,
+                                CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+#else
 	hrtimer_init(&timer->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	timer->timer.function = timer_callback;
+#endif
 	timer->fn = fn;
 	timer->arg = arg;
 	timer->interval = ktime_set(0, 0);
