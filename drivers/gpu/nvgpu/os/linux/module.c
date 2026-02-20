@@ -2128,7 +2128,11 @@ static void __exit gk20a_exit(void)
 }
 
 #ifdef MODULE_IMPORT_NS
+#if defined(NV_MODULE_IMPORT_NS_CALLS_STRINGIFY)
 MODULE_IMPORT_NS(DMA_BUF);
+#else
+MODULE_IMPORT_NS("DMA_BUF");
+#endif
 #endif
 #ifdef CONFIG_GK20A_DEVFREQ
 MODULE_SOFTDEP("pre: governor_pod_scaling");
